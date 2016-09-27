@@ -7,11 +7,20 @@
 #property link      "https://www.mql5.com"
 #property version   "1.00"
 #property strict
-//+------------------------------------------------------------------+
+
+int lastTradeDate = GlobalVariableGet("lastTrade");
+int lastTransactionDate = GlobalVariableGet("lastTransaction");
+  //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
 int OnInit()
  {
+  if (lastTradeDate == NULL) {
+   lastTradeDate = TimeCurrent();
+  }
+  if (lastTransactionDate == NULL) {
+   lastTransactionDate = TimeCurrent();
+  }
 //--- create timer
   EventSetTimer(60);
      
@@ -39,50 +48,7 @@ void OnTick()
 //| Timer function                                                   |
 //+------------------------------------------------------------------+
 void OnTimer() {
-  //---
-  // retrieving info from account history
-  int hstTotal = OrdersHistoryTotal();
-  int lastTransactionDate = GlobalVariableGet("lastTransaction");
-  Print("Last Transaction Date: ", lastTransactionDate);
-  for (int i=0; i < hstTotal; i++) {
-     //---- check selection result
-     if(OrderSelect(i, SELECT_BY_POS, MODE_HISTORY) == false) {
-        Print("Access to history failed with error (", GetLastError(), ")");
-        break;
-     }
-     int date = OrderCloseTime();
-     if (date > lastTransactionDate) {
-        int orderType = OrderType();
-        if (orderType != OP_SELL && orderType != OP_BUY) {
-           continue;
-        }
-        int openDate = OrderOpenTime();
-        double openM5 = getRSI(openDate, PERIOD_M5);
-        double closeM5 = getRSI(date, PERIOD_M5);
-        double openM15 = getRSI(openDate, PERIOD_M15);
-        double closeM15 = getRSI(date, PERIOD_M15);
-        double openM30 = getRSI(openDate, PERIOD_M30);
-        double closeM30 = getRSI(date, PERIOD_M30);
-        double openH1 = getRSI(openDate, PERIOD_H1);
-        double closeH1 = getRSI(date, PERIOD_H1);
-        string text = (orderType==OP_SELL?"Sell":"Buy")+": "+OrderLots()+"@EUR/USD "+OrderOpenPrice()
-                     +" RSI("+openM5+","+openM15+","+openM30+","+openH1+")\n"+(orderType==OP_SELL?"Buy":"Sell")
-                     +": "+OrderLots()+"@EUR/USD "+OrderClosePrice()+" RSI("+closeM5+","+closeM15+","+closeM30+","
-                     +closeH1+")| P/L "+OrderProfit();
-        int res = sendToSlack("#forex-desk", text);
-        if (res != 200) {
-         Print(GetLastError());
-         continue;
-        }
-        OrderPrint();
-        lastTransactionDate = date;
-        GlobalVariableSet("lastTransaction", lastTransactionDate);
-     }
-  }
-  //---
-  // retrieving info from trade
-  hstTotal = OrdersTotal();
-  int lastTradeDate = GlobalVariableGet("lastTrade");
+  int hstTotal = OrdersTotal();
   Print("Last Trade Date: ", lastTradeDate);
   for (int i=0; i < hstTotal; i++) {
      //---- check selection result
@@ -96,14 +62,17 @@ void OnTimer() {
         if (orderType != OP_SELL && orderType != OP_BUY) {
            continue;
         }
+        if (Symbol() != OrderSymbol()) {
+         continue;
+        }
         double openM5 = getRSI(date, PERIOD_M5);
         double openM15 = getRSI(date, PERIOD_M15);
         double openM30 = getRSI(date, PERIOD_M30);
         double openH1 = getRSI(date, PERIOD_H1);
 
-        string text = "*New Order Created*\n#"+OrderTicket()+" "+(orderType==OP_SELL?"Sell":"Buy")+": "+OrderLots()+"@EUR/USD "
+        string text = "*New Order Created*\n#"+OrderTicket()+" "+(orderType==OP_SELL?"Sell":"Buy")+": "+OrderLots()+"@"+OrderSymbol()+" "
                      +OrderOpenPrice()+" RSI("+openM5+","+openM15+","+openM30+","+openH1+")";
-        int res = sendToSlack("#forex-desk", text);
+        int res = sendToSlack("#reports", text);
         if (res != 200) {
          Print(GetLastError());
          continue;
@@ -113,6 +82,50 @@ void OnTimer() {
         GlobalVariableSet("lastTrade", lastTradeDate);
      }
   }
+  //---
+  // retrieving info from account history
+  hstTotal = OrdersHistoryTotal();
+  Print("Last Transaction Date: ", lastTransactionDate);
+  for (int i=0; i < hstTotal; i++) {
+     //---- check selection result
+     if(OrderSelect(i, SELECT_BY_POS, MODE_HISTORY) == false) {
+        Print("Access to history failed with error (", GetLastError(), ")");
+        break;
+     }
+     int date = OrderCloseTime();
+     if (date > lastTransactionDate) {
+        int orderType = OrderType();
+        if (orderType != OP_SELL && orderType != OP_BUY) {
+           continue;
+        }
+        if (Symbol() != OrderSymbol()) {
+         continue;
+        }
+        int openDate = OrderOpenTime();
+        double openM5 = getRSI(openDate, PERIOD_M5);
+        double closeM5 = getRSI(date, PERIOD_M5);
+        double openM15 = getRSI(openDate, PERIOD_M15);
+        double closeM15 = getRSI(date, PERIOD_M15);
+        double openM30 = getRSI(openDate, PERIOD_M30);
+        double closeM30 = getRSI(date, PERIOD_M30);
+        double openH1 = getRSI(openDate, PERIOD_H1);
+        double closeH1 = getRSI(date, PERIOD_H1);
+        string text = (orderType==OP_SELL?"Sell":"Buy")+": "+OrderLots()+"@"+OrderSymbol()+" "+OrderOpenPrice()
+                     +" RSI("+openM5+","+openM15+","+openM30+","+openH1+")\n"+(orderType==OP_SELL?"Buy":"Sell")
+                     +": "+OrderLots()+"@"+OrderSymbol()+" "+OrderClosePrice()+" RSI("+closeM5+","+closeM15+","+closeM30+","
+                     +closeH1+")| P/L "+OrderProfit();
+        int res = sendToSlack("#reports", text);
+        if (res != 200) {
+         Print(GetLastError());
+         continue;
+        }
+        OrderPrint();
+        lastTransactionDate = date;
+        GlobalVariableSet("lastTransaction", lastTransactionDate);
+     }
+  }
+  //---
+  // retrieving info from trade
 }
 
 //+------------------------------------------------------------------+
@@ -141,7 +154,7 @@ int sendToSlack(string channel, string text) {
    string json = "payload={\"text\":\""+text+"\",\"channel\":\""+channel+"\"}";
    //--- Create the body of the POST request for authorization
    StringToCharArray(json, data, 0, StringLen(json));
-   int res = WebRequest("POST", "https://hooks.slack.com/services/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", "", NULL,
+   int res = WebRequest("POST", "https://hooks.slack.com/services/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", "", NULL,
                         10000, data, ArraySize(data), result, headers);
    return res;
 }
