@@ -7,6 +7,9 @@
 #property link      "https://www.mql5.com"
 #property version   "1.00"
 #property strict
+
+double last_alert_H1 = NULL;
+double last_alert_H4 = NULL;
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -45,17 +48,32 @@ void OnTimer()
    datetime now = TimeCurrent();
    double H1 = getRSI(now, PERIOD_H1);
    double H4 = getRSI(now, PERIOD_H4);
+   double Price = Ask;
+   
    string text = "";
    if (H1 > 70 || H1 < 30) {
-      text += "*RSI H1:* "+NormalizeDouble(H1,2)+"\n";
+      
+      if (H1 > 70)
+         Price = Bid;
+         
+      text += "*RSI H1:* "+NormalizeDouble(H1,2)+" (_"+Price+"_)\n";
+   } else {
+      if (last_alert_H1 != NULL) {
+         last_alert_H1 = NULL;
+      }
    }
+   
    if (H4 > 70 || H4 < 30) {
-      text += "*RSI H4:* "+NormalizeDouble(H4,2)+"\n";
+      if (H4 > 70)
+         Price = Bid;
+         
+      text += "*RSI H4:* "+NormalizeDouble(H4,2)+" (_"+Price+"_)\n";
+      last_alert_H4 = H4;
    }
    if (StringLen(text) != 0) {
       string symbol = Symbol();
       StringToLower(symbol);
-      string channel = "#"+symbol+"-alerts";
+      string channel = "#alerts-"+symbol;
       Print(channel);
       sendToSlack(channel,text);
    }
