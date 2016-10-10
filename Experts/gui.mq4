@@ -230,15 +230,44 @@ void BuildInterface() {
    guiSetTextColor(hwnd,BreakevenValueLabel,Black);
    guiSetText(hwnd, BreakevenValueLabel, Breakeven, 12, "Windings");
    
-   /* Add the profit loss for the symbol */
-   int PL_Label = guiAdd(hwnd,"label",XExposure+275,85,100,15,"PL"); guiSetBgColor(hwnd,PL_Label, RoyalBlue);
-   guiSetTextColor(hwnd,PL_Label,White); guiSetText(hwnd, PL_Label, "PL", 12, "Windings");
+   /* Add the PL for the symbol */
+   int PL_Label = guiAdd(hwnd,"label",XExposure+275,85,100,15,"PL"); 
+   guiSetBgColor(hwnd,PL_Label, RoyalBlue);
+   guiSetTextColor(hwnd,PL_Label,White); 
+   guiSetText(hwnd, PL_Label, "PL", 12, "Windings");
    
    string SymbolPL = Profit;
    PLValueLabel = guiAdd(hwnd,"label",XExposure+275,100,100,15, SymbolPL);    
    guiSetBgColor(hwnd,PLValueLabel,White);
    guiSetTextColor(hwnd,PLValueLabel,Black);
    guiSetText(hwnd, PLValueLabel, SymbolPL, 12, "Windings");
+   
+   /* Add the break margin point*/
+   int BreakmarginLabel = guiAdd(hwnd,"label", XExposure+275,115,100,15,"Breakmargin pips");     
+   guiSetBgColor(hwnd,BreakmarginLabel,RoyalBlue);
+   guiSetTextColor(hwnd,BreakmarginLabel,White);
+   guiSetText(hwnd, BreakmarginLabel, "Breakmargin point", 12, "Windings");
+   
+   /* Add the break margin for the symbol */
+   double BreakMarginPoint = (Margin - Equity)/(10*NetExposure); 
+   
+   int BreakmarginValueLabel = guiAdd(hwnd,"label",XExposure+275,130,100,15,"PL"); 
+   guiSetBgColor(hwnd,BreakmarginValueLabel, White);
+   guiSetTextColor(hwnd,BreakmarginValueLabel,Black); 
+   guiSetText(hwnd, BreakmarginValueLabel, NormalizeDouble(BreakMarginPoint,0), 14, "Windings");
+   
+   /* Add the stop out point */ 
+   int StopoutLabel = guiAdd(hwnd,"label",XExposure+275,145,100,15,"Stopout point");     
+   guiSetBgColor(hwnd,StopoutLabel,RoyalBlue);
+   guiSetTextColor(hwnd,StopoutLabel,White);
+   guiSetText(hwnd, StopoutLabel, "Stopout point", 12, "Windings");
+   
+   double StopoutValuePoint = (Equity - Margin*0.20)/(10*NetExposure);
+   
+   int StopoutValueLabel = guiAdd(hwnd,"label",XExposure+275,160,100,15,"Stopout point"); 
+   guiSetBgColor(hwnd,StopoutValueLabel, White);
+   guiSetTextColor(hwnd,StopoutValueLabel,Black); 
+   guiSetText(hwnd, StopoutValueLabel, NormalizeDouble(StopoutValuePoint,0), 12, "Windings");
    
    int AccountInfoLabel = guiAdd(hwnd,"label",XExposure+135,5,135,15,"Account");     
    guiSetBgColor(hwnd,AccountInfoLabel,RoyalBlue);
