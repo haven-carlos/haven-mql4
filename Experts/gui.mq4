@@ -24,6 +24,9 @@ double SellExposure, BuyExposure, NetExposure, BuyPosition, SellPosition, Percen
    Profit = GlobalVariableGet("profit"),
    Balance = AccountBalance(), Equity = AccountEquity(), Margin = AccountMargin(), FreeMargin = AccountFreeMargin(), MarginLevel = NormalizeDouble((Equity/Margin)*100, 2);
 
+
+double AccountNetExposure = 0;
+  
 int XExposure = 200;
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -43,7 +46,7 @@ int OnInit() {
       MaxExposure = 100;
       MaxExposureInLots = (AccountBalance()) * (MaxExposure/100) * 0.001;
    }
-   EventSetTimer(10);
+   EventSetTimer(2);
    ObjectsDeleteAll();
    hwnd = WindowHandle(Symbol(),Period());     
    // Lets remove all Objects from Chart before we start
@@ -87,14 +90,14 @@ void OnTick()
       Print("place Order");
       int type;
       double volume = NetExposure;
-      double bid   =MarketInfo("EURUSD",MODE_BID); // Request for the value of Bid
-      double ask   =MarketInfo("EURUSD",MODE_ASK); // Request for the value of Ask
+      double bid   =MarketInfo(Symbol(),MODE_BID); // Request for the value of Bid
+      double ask   =MarketInfo(Symbol(),MODE_ASK); // Request for the value of Ask
       if (BuyExposure < SellExposure) {
          type = OP_BUY;
       } else {
          type = OP_SELL;
       }
-      int ticket=OrderSend("EURUSD",type,NormalizeDouble(volume,2),ask,3,0,0);
+      int ticket=OrderSend(Symbol(),type,NormalizeDouble(volume,2),ask,3,0,0);
       if(ticket<0)
          Print("OrderSend failed with error #",GetLastError());
       else
@@ -249,12 +252,12 @@ void BuildInterface() {
    guiSetText(hwnd, BreakmarginLabel, "Breakmargin point", 12, "Windings");
    
    /* Add the break margin for the symbol */
-   double BreakMarginPoint = (Margin - Equity)/(10*NetExposure); 
+   double BreakMarginPoint = (Equity - Margin)/(10*AccountNetExposure); 
    
    int BreakmarginValueLabel = guiAdd(hwnd,"label",XExposure+275,130,100,15,"PL"); 
    guiSetBgColor(hwnd,BreakmarginValueLabel, White);
    guiSetTextColor(hwnd,BreakmarginValueLabel,Black); 
-   guiSetText(hwnd, BreakmarginValueLabel, NormalizeDouble(BreakMarginPoint,0), 14, "Windings");
+   guiSetText(hwnd, BreakmarginValueLabel, NormalizeDouble(BreakMarginPoint,2), 14, "Windings");
    
    /* Add the stop out point */ 
    int StopoutLabel = guiAdd(hwnd,"label",XExposure+275,145,100,15,"Stopout point");     
@@ -262,12 +265,12 @@ void BuildInterface() {
    guiSetTextColor(hwnd,StopoutLabel,White);
    guiSetText(hwnd, StopoutLabel, "Stopout point", 12, "Windings");
    
-   double StopoutValuePoint = (Equity - Margin*0.20)/(10*NetExposure);
+   double StopoutValuePoint = (Equity - Margin*0.20)/(10*AccountNetExposure);
    
    int StopoutValueLabel = guiAdd(hwnd,"label",XExposure+275,160,100,15,"Stopout point"); 
    guiSetBgColor(hwnd,StopoutValueLabel, White);
    guiSetTextColor(hwnd,StopoutValueLabel,Black); 
-   guiSetText(hwnd, StopoutValueLabel, NormalizeDouble(StopoutValuePoint,0), 12, "Windings");
+   guiSetText(hwnd, StopoutValueLabel, NormalizeDouble(StopoutValuePoint,2), 12, "Windings");
    
    int AccountInfoLabel = guiAdd(hwnd,"label",XExposure+135,5,135,15,"Account");     
    guiSetBgColor(hwnd,AccountInfoLabel,RoyalBlue);
@@ -337,6 +340,8 @@ void calculateExposure () {
   double buyPosition = 0;
   double sellPosition = 0;
   double profit = 0;
+  AccountNetExposure = 0;
+  
   for (int i=0; i < hstTotal; i++) {
      //---- check selection result
      if(OrderSelect(i, SELECT_BY_POS) == false) {
@@ -344,9 +349,18 @@ void calculateExposure () {
         break;
      }
 
+     if (OrderType() == OP_SELL) {
+        AccountNetExposure -= OrderLots();
+     }
+     
+     if (OrderType() == OP_BUY) {
+        AccountNetExposure += OrderLots();
+     }
+     
      if (OrderSymbol()!=Symbol()) {
       continue;
      }
+     
      profit += OrderProfit();
      
      int orderType = OrderType();
@@ -356,10 +370,11 @@ void calculateExposure () {
      } else {
        if (orderType == OP_BUY) {
          buyExposure += OrderLots();
-         buyPosition += (OrderOpenPrice() * OrderLots());
+         buyPosition += (OrderOpenPrice() * OrderLots());   
        } 
      }
   }
+  
   double netExposure = MathAbs(buyExposure - sellExposure);
   double breakeven;
   if (netExposure != 0) { 
