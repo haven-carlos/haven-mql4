@@ -68,9 +68,41 @@ void WriteCandles(string SymbolName, int timeframe){
          iLow(SymbolName, p, s),
          iClose(SymbolName, p, s),
          iVolume(SymbolName, p, s));
+         
+      //FirebasePutCandle(SymbolName, p, t, iOpen(SymbolName, p, s), iHigh(SymbolName, p, s), iLow(SymbolName, p, s), iClose(SymbolName, p, s));
    }
    FileClose(handle);
-   //Alert(filename + " was produced");
+}
+
+int FirebasePutCandle(string SymbolName, int timeframe, datetime time, double open, double high, double low, double close) {
+   char data[], result[];
+   string headers;
+   int timestamp = time;
+   
+   string json = "{ \"timestamp\": " + timestamp + ",";
+   json += " \"open\": " + open + ",";
+   json += " \"high\": " + high + ",";
+   json += " \"low\": " + low + ",";
+   json += " \"close\": " + close ;
+   json += "}";
+   
+   //  ={\"text\":\""+text+"\",\"channel\":\""+channel+"\"}";
+   //--- Create the body of the POST request for authorization
+   StringToCharArray(json, data, 0, StringLen(json));
+   
+   ResetLastError();
+   int res = WebRequest("PUT", "https://fxwax-28a0e.firebaseio.com/"+SymbolName+"/M"+timeframe+".json", "", NULL,
+                        5000, data, ArraySize(data), result, headers);
+   if(res==-1)
+     {
+      Print(json);
+      Print("Error in WebRequest. Error code  =",GetLastError());
+   } else {
+      Print(json);
+      Print(CharArrayToString(result));
+      Print("https://fxwax-28a0e.firebaseio.com/"+SymbolName+"/M"+timeframe+".json");
+   }
+   return res;
 }
 
 int OnInit()
@@ -80,7 +112,7 @@ int OnInit()
 //---
    bool MWatch = 0;
    int SymbolCount = SymbolsTotal(MWatch);
-   for (int i = 0; i < SymbolCount; i++){
+   for (int i = 0; i < 0; i++){
       string SymbolName = SymbolName(i,MWatch);
       
       if (Forex(SymbolName)){
@@ -88,6 +120,7 @@ int OnInit()
       }
    }
     
+    WriteCandles("USDJPY", PERIOD_M1);
    return(INIT_SUCCEEDED);
   }
 //+------------------------------------------------------------------+
