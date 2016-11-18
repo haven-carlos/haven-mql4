@@ -52,11 +52,13 @@ void OnTimer()
    
    string text = "";
    if (H1 > 70 || H1 < 30) {
-      
-      if (H1 > 70)
-         Price = Bid;
-         
-      text += "*RSI H1:* "+NormalizeDouble(H1,2)+" (_"+Price+"_)\n";
+      if (last_alert_H1 != H1) {
+         if (H1 > 70) {
+            Price = Bid;
+         }
+         text += "*RSI H1:* "+NormalizeDouble(H1,2)+" (_"+Price+"_)\n";
+         last_alert_H1 = H1;
+      }
    } else {
       if (last_alert_H1 != NULL) {
          last_alert_H1 = NULL;
@@ -64,12 +66,19 @@ void OnTimer()
    }
    
    if (H4 > 70 || H4 < 30) {
-      if (H4 > 70)
-         Price = Bid;
-         
-      text += "*RSI H4:* "+NormalizeDouble(H4,2)+" (_"+Price+"_)\n";
-      last_alert_H4 = H4;
+      if (last_alert_H4 != H4) {
+         if (H4 > 70) {
+            Price = Bid;
+         }
+         text += "*RSI H4:* "+NormalizeDouble(H4,2)+" (_"+Price+"_)\n";
+         last_alert_H4 = H4;
+      }
+   } else {
+      if (last_alert_H4 != NULL) {
+         last_alert_H4 = NULL;
+      }
    }
+
    if (StringLen(text) != 0) {
       string symbol = Symbol();
       StringToLower(symbol);

@@ -103,9 +103,6 @@ void ScanMovers(int timeframe){
    int Count = 0;
    int iShift = 1;
    
-   Print ("Dandole");
-   Print ("Dandole con "+SymbolsTotal(MarketWatch));
-   Print ("Semana #: " + (StdWeek() - iShift));
    for(int i=0;i<SymbolsTotal(MarketWatch);i++)
    {
       string SymbolName = SymbolName(i,MarketWatch);

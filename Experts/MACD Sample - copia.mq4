@@ -64,7 +64,7 @@ void OnTick(void)
          
    }
    
-   if(totalBuys + totalSells <5) {
+   if(totalBuys + totalSells < 2) {
       //--- no opened orders identified
       if(AccountFreeMargin()<(1000*LotsAmount))
         {
